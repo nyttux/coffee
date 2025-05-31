@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Particle Universe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(45deg, #0a0a0a, #1a0033, #000819, #330066);
+            background-size: 400% 400%;
+            animation: gradientShift 8s ease infinite;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            cursor: none;
+            height: 100vh;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        #canvas {
+            display: block;
+            background: transparent;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .custom-cursor {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.6),
+                inset 0 0 10px rgba(0, 255, 255, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+        
+        .custom-cursor.exploding {
+            transform: scale(3);
+            border-color: #ff0080;
+            box-shadow: 
+                0 0 50px rgba(255, 0, 128, 0.8),
+                inset 0 0 20px rgba(255, 0, 128, 0.5);
+        }
+        
+        .hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            font-size: 16px;
+            z-index: 100;
+            backdrop-filter: blur(15px);
+            padding: 20px;
+            border-radius: 15px;
+            background: rgba(0, 20, 40, 0.4);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #00ffff;
+            font-size: 14px;
+            z-index: 100;
+            backdrop-filter: blur(15px);
+            padding: 20px;
+            border-radius: 15px;
+            background: rgba(0, 20, 40, 0.4);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .error-display {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: monospace;
+            display: none;
+            z-index: 9999;
+            max-width: 80%;
+            text-align: center;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ffff;
+            font-size: 24px;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">Initializing Universe...</div>
+    <canvas id="canvas"></canvas>
+    <div class="custom-cursor" id="cursor"></div>
+    <div class="error-display" id="errorDisplay"></div>
+    
+    <div class="hud" id="hud" style="display:none;">
+        <div><strong>🌌 PARTICLE UNIVERSE</strong></div>
+        <div>Active Particles: <span id="particleCount">0</span></div>
+        <div>Frame Rate: <span id="fps">0</span> FPS</div>
+        <div>Mouse Force: <span id="mouseForce">0</span></div>
+        <div>Status: <span id="status">ACTIVE</span></div>
+    </div>
+    
+    <div class="controls" id="controls" style="display:none;">
+        <div><strong>🎮 CONTROLS</strong></div>
+        <div>🖱️ Move: Attract particles</div>
+        <div>🖱️ Click: Cosmic explosion</div>
+        <div>⌨️ Space: Reset universe</div>
+        <div>📱 Touch: Mobile support</div>
+    </div>
+
+    <script>
+        // Global error handler
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            showError(`Script Error: ${msg} at line ${lineNo}`);
+            return false;
+        };
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            showError(`Unhandled Promise Rejection: ${event.reason}`);
+        });
+        
+        function showError(message) {
+            const errorDisplay = document.getElementById('errorDisplay');
+            if (errorDisplay) {
+                errorDisplay.textContent = message;
+                errorDisplay.style.display = 'block';
+                setTimeout(() => {
+                    errorDisplay.style.display = 'none';
+                }, 5000);
+            }
+            console.error(message);
+        }
+        
+        try {
+            // Initialize all variables
+            let canvas, ctx, cursor, particleCountEl, fpsEl, mouseForceEl, statusEl;
+            let mouse = { x: 0, y: 0, clicked: false, force: 0 };
+            let particles = [];
+            let animationId = null;
+            let lastTime = 0;
+            let fps = 0;
+            let frameCount = 0;
+            let isInitialized = false;
+            
+            // Particle class with error handling
+            class Particle {
+                constructor(x = 0, y = 0, isExplosion = false) {
+                    try {
+                        this.x = Number(x) || Math.random() * window.innerWidth;
+                        this.y = Number(y) || Math.random() * window.innerHeight;
+                        
+                        const speed = isExplosion ? 12 : 3;
+                        this.vx = (Math.random() - 0.5) * speed;
+                        this.vy = (Math.random() - 0.5) * speed;
+                        
+                        this.life = 1.0;
+                        this.decay = isExplosion ? 0.02 : 0.003;
+                        this.size = isExplosion ? Math.random() * 6 + 3 : Math.random() * 4 + 1;
+                        this.originalSize = this.size;
+                        
+                        this.hue = isExplosion ? 
+                            Math.random() * 60 + 300 : // Purple to pink for explosions
+                            Math.random() * 60 + 180;  // Cyan to blue for normal
+                        
+                        this.angle = Math.random() * Math.PI * 2;
+                        this.rotationSpeed = (Math.random() - 0.5) * 0.1;
+                        this.trail = [];
+                        this.maxTrailLength = isExplosion ? 15 : 8;
+                        
+                    } catch (error) {
+                        showError(`Particle constructor error: ${error.message}`);
+                        // Set safe defaults
+                        this.x = 100;
+                        this.y = 100;
+                        this.vx = 0;
+                        this.vy = 0;
+                        this.life = 1;
+                        this.decay = 0.01;
+                        this.size = 2;
+                        this.hue = 200;
+                    }
+                }
+                
+                update() {
+                    try {
+                        // Update trail
+                        this.trail.push({ x: this.x, y: this.y, life: this.life * 0.5 });
+                        if (this.trail.length > this.maxTrailLength) {
+                            this.trail.shift();
+                        }
+                        
+                        // Mouse interaction
+                        if (mouse.x !== undefined && mouse.y !== undefined) {
+                            const dx = mouse.x - this.x;
+                            const dy = mouse.y - this.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (distance < 250 && distance > 0) {
+                                const force = (250 - distance) / 250;
+                                const normalizedDx = dx / distance;
+                                const normalizedDy = dy / distance;
+                                
+                                this.vx += normalizedDx * force * 0.8;
+                                this.vy += normalizedDy * force * 0.8;
+                                
+                                mouse.force = Math.max(mouse.force, force);
+                            }
+                        }
+                        
+                        // Orbital motion
+                        this.angle += this.rotationSpeed;
+                        this.vx += Math.cos(this.angle) * 0.1;
+                        this.vy += Math.sin(this.angle) * 0.1;
+                        
+                        // Update position
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        
+                        // Friction
+                        this.vx *= 0.985;
+                        this.vy *= 0.985;
+                        
+                        // Boundary handling with proper checks
+                        if (canvas && canvas.width && canvas.height) {
+                            if (this.x < 0) {
+                                this.x = 0;
+                                this.vx *= -0.7;
+                            } else if (this.x > canvas.width) {
+                                this.x = canvas.width;
+                                this.vx *= -0.7;
+                            }
+                            
+                            if (this.y < 0) {
+                                this.y = 0;
+                                this.vy *= -0.7;
+                            } else if (this.y > canvas.height) {
+                                this.y = canvas.height;
+                                this.vy *= -0.7;
+                            }
+                        }
+                        
+                        // Life cycle
+                        this.life -= this.decay;
+                        this.size = this.originalSize * this.life;
+                        
+                    } catch (error) {
+                        showError(`Particle update error: ${error.message}`);
+                    }
+                }
+                
+                draw() {
+                    try {
+                        if (!ctx || this.life <= 0) return;
+                        
+                        // Draw trail
+                        this.trail.forEach((point, index) => {
+                            if (point && point.x !== undefined && point.y !== undefined) {
+                                const alpha = (point.life || 0) * (index / this.trail.length) * 0.4;
+                                if (alpha > 0) {
+                                    ctx.fillStyle = `hsla(${this.hue}, 80%, 60%, ${alpha})`;
+                                    ctx.beginPath();
+                                    ctx.arc(point.x, point.y, this.size * 0.3, 0, Math.PI * 2);
+                                    ctx.fill();
+                                }
+                            }
+                        });
+                        
+                        // Main particle glow
+                        const gradient = ctx.createRadialGradient(
+                            this.x, this.y, 0,
+                            this.x, this.y, this.size * 4
+                        );
+                        gradient.addColorStop(0, `hsla(${this.hue}, 90%, 70%, ${this.life})`);
+                        gradient.addColorStop(0.4, `hsla(${this.hue}, 80%, 60%, ${this.life * 0.6})`);
+                        gradient.addColorStop(1, `hsla(${this.hue}, 70%, 50%, 0)`);
+                        
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size * 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Core particle
+                        ctx.fillStyle = `hsla(${this.hue}, 100%, 80%, ${this.life})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                    } catch (error) {
+                        showError(`Particle draw error: ${error.message}`);
+                    }
+                }
+            }
+            
+            // Initialize canvas and context
+            function initializeCanvas() {
+                try {
+                    canvas = document.getElementById('canvas');
+                    if (!canvas) throw new Error('Canvas element not found');
+                    
+                    ctx = canvas.getContext('2d');
+                    if (!ctx) throw new Error('Cannot get 2D context');
+                    
+                    resizeCanvas();
+                    return true;
+                } catch (error) {
+                    showError(`Canvas initialization error: ${error.message}`);
+                    return false;
+                }
+            }
+            
+            // Resize canvas safely
+            function resizeCanvas() {
+                try {
+                    if (canvas) {
+                        canvas.width = window.innerWidth;
+                        canvas.height = window.innerHeight;
+                    }
+                } catch (error) {
+                    showError(`Canvas resize error: ${error.message}`);
+                }
+            }
+            
+            // Initialize particles safely
+            function initParticles() {
+                try {
+                    particles = [];
+                    const count = Math.min(120, Math.floor((canvas.width * canvas.height) / 5000));
+                    
+                    for (let i = 0; i < count; i++) {
+                        particles.push(new Particle(
+                            Math.random() * canvas.width,
+                            Math.random() * canvas.height,
+                            false
+                        ));
+                    }
+                } catch (error) {
+                    showError(`Particle initialization error: ${error.message}`);
+                }
+            }
+            
+            // Create explosion safely
+            function createExplosion(x, y) {
+                try {
+                    if (particles.length < 300) { // Prevent memory issues
+                        for (let i = 0; i < 25; i++) {
+                            particles.push(new Particle(x, y, true));
+                        }
+                    }
+                } catch (error) {
+                    showError(`Explosion creation error: ${error.message}`);
+                }
+            }
+            
+            // Update cursor position safely
+            function updateCursor(x, y) {
+                try {
+                    if (cursor) {
+                        cursor.style.left = (x - 15) + 'px';
+                        cursor.style.top = (y - 15) + 'px';
+                    }
+                    mouse.x = x;
+                    mouse.y = y;
+                } catch (error) {
+                    showError(`Cursor update error: ${error.message}`);
+                }
+            }
+            
+            // Draw connections between particles
+            function drawConnections() {
+                try {
+                    if (!ctx || particles.length === 0) return;
+                    
+                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+                    ctx.lineWidth = 1;
+                    
+                    for (let i = 0; i < particles.length; i += 2) { // Optimize by checking fewer particles
+                        for (let j = i + 2; j < particles.length; j += 2) {
+                            const p1 = particles[i];
+                            const p2 = particles[j];
+                            
+                            if (!p1 || !p2) continue;
+                            
+                            const dx = p1.x - p2.x;
+                            const dy = p1.y - p2.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (distance < 120) {
+                                const alpha = Math.max(0, (120 - distance) / 120 * 0.3);
+                                ctx.strokeStyle = `rgba(0, 255, 255, ${alpha})`;
+                                ctx.beginPath();
+                                ctx.moveTo(p1.x, p1.y);
+                                ctx.lineTo(p2.x, p2.y);
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                } catch (error) {
+                    showError(`Connection drawing error: ${error.message}`);
+                }
+            }
+            
+            // Main animation loop
+            function animate(currentTime = 0) {
+                try {
+                    if (!isInitialized) return;
+                    
+                    // Calculate FPS
+                    const deltaTime = currentTime - lastTime;
+                    lastTime = currentTime;
+                    frameCount++;
+                    
+                    if (frameCount % 30 === 0) { // Update FPS every 30 frames
+                        fps = Math.round(1000 / deltaTime);
+                        if (fpsEl) fpsEl.textContent = fps;
+                    }
+                    
+                    // Clear canvas with fade effect
+                    if (ctx && canvas) {
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    // Reset mouse force
+                    mouse.force = 0;
+                    
+                    // Update and draw particles
+                    particles = particles.filter(particle => {
+                        if (particle) {
+                            particle.update();
+                            particle.draw();
+                            return particle.life > 0 && particle.size > 0.1;
+                        }
+                        return false;
+                    });
+                    
+                    // Maintain minimum particle count
+                    while (particles.length < 80) {
+                        particles.push(new Particle(
+                            Math.random() * canvas.width,
+                            Math.random() * canvas.height,
+                            false
+                        ));
+                    }
+                    
+                    // Draw connections
+                    drawConnections();
+                    
+                    // Update HUD
+                    if (particleCountEl) particleCountEl.textContent = particles.length;
+                    if (mouseForceEl) mouseForceEl.textContent = Math.round(mouse.force * 100);
+                    
+                    animationId = requestAnimationFrame(animate);
+                    
+                } catch (error) {
+                    showError(`Animation loop error: ${error.message}`);
+                    // Try to continue animation despite errors
+                    animationId = requestAnimationFrame(animate);
+                }
+            }
+            
+            // Event handlers with error checking
+            function setupEventHandlers() {
+                try {
+                    // Mouse events
+                    canvas.addEventListener('mousemove', (e) => {
+                        updateCursor(e.clientX, e.clientY);
+                    });
+                    
+                    canvas.addEventListener('mousedown', (e) => {
+                        mouse.clicked = true;
+                        if (cursor) cursor.classList.add('exploding');
+                        createExplosion(e.clientX, e.clientY);
+                    });
+                    
+                    canvas.addEventListener('mouseup', () => {
+                        mouse.clicked = false;
+                        if (cursor) cursor.classList.remove('exploding');
+                    });
+                    
+                    // Touch events
+                    canvas.addEventListener('touchmove', (e) => {
+                        e.preventDefault();
+                        const touch = e.touches[0];
+                        if (touch) {
+                            updateCursor(touch.clientX, touch.clientY);
+                        }
+                    }, { passive: false });
+                    
+                    canvas.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        const touch = e.touches[0];
+                        if (touch) {
+                            createExplosion(touch.clientX, touch.clientY);
+                        }
+                    }, { passive: false });
+                    
+                    // Keyboard events
+                    document.addEventListener('keydown', (e) => {
+                        if (e.code === 'Space') {
+                            e.preventDefault();
+                            initParticles();
+                        }
+                    });
+                    
+                    // Resize handler
+                    window.addEventListener('resize', resizeCanvas);
+                    
+                } catch (error) {
+                    showError(`Event handler setup error: ${error.message}`);
+                }
+            }
+            
+            // Initialize everything
+            function initialize() {
+                try {
+                    // Get DOM elements
+                    cursor = document.getElementById('cursor');
+                    particleCountEl = document.getElementById('particleCount');
+                    fpsEl = document.getElementById('fps');
+                    mouseForceEl = document.getElementById('mouseForce');
+                    statusEl = document.getElementById('status');
+                    
+                    if (!initializeCanvas()) {
+                        throw new Error('Canvas initialization failed');
+                    }
+                    
+                    setupEventHandlers();
+                    initParticles();
+                    
+                    // Set initial mouse position
+                    mouse.x = canvas.width / 2;
+                    mouse.y = canvas.height / 2;
+                    
+                    isInitialized = true;
+                    
+                    // Hide loading and show UI
+                    const loading = document.getElementById('loading');
+                    const hud = document.getElementById('hud');
+                    const controls = document.getElementById('controls');
+                    
+                    if (loading) loading.style.display = 'none';
+                    if (hud) hud.style.display = 'block';
+                    if (controls) controls.style.display = 'block';
+                    
+                    // Start animation
+                    animate();
+                    
+                    // Create initial explosion
+                    setTimeout(() => {
+                        createExplosion(canvas.width / 2, canvas.height / 2);
+                    }, 1000);
+                    
+                } catch (error) {
+                    showError(`Initialization error: ${error.message}`);
+                }
+            }
+            
+            // Start when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initialize);
+            } else {
+                initialize();
+            }
+            
+        } catch (error) {
+            showError(`Global script error: ${error.message}`);
+        }
+    </script>
+</body>
+</html>

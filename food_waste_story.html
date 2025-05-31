@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hidden Crisis: Food Waste Unveiled</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d1b3d 50%, #1a1a1a 100%);
+            color: white;
+            font-family: 'Georgia', serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .story-container {
+            position: relative;
+            z-index: 10;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .chapter {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px 0;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s ease-out;
+        }
+        
+        .chapter.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .chapter h1 {
+            font-size: 3.5em;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcf7f);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .chapter h2 {
+            font-size: 2.5em;
+            margin-bottom: 25px;
+            color: #ff6b6b;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+        
+        .chapter p {
+            font-size: 1.4em;
+            margin-bottom: 25px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .stat-highlight {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #ffd93d;
+            text-shadow: 0 0 30px rgba(255, 217, 61, 0.7);
+            display: block;
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(255, 217, 61, 0.1);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 217, 61, 0.3);
+        }
+        
+        .interactive-prompt {
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .interactive-prompt:hover {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: rgba(0, 255, 255, 0.6);
+            transform: scale(1.02);
+        }
+        
+        .food-counter {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #ff6b6b;
+            z-index: 100;
+            min-width: 250px;
+        }
+        
+        .counter-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+        
+        .counter-number {
+            color: #ffd93d;
+            font-weight: bold;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 1s ease forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .scroll-indicator {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+            40% { transform: translateX(-50%) translateY(-10px); }
+            60% { transform: translateX(-50%) translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="food-counter" id="foodCounter">
+        <div style="text-align: center; margin-bottom: 15px; font-weight: bold; color: #ff6b6b;">
+            🌍 FOOD WASTED RIGHT NOW
+        </div>
+        <div class="counter-item">
+            <span>This Second:</span>
+            <span class="counter-number" id="perSecond">0</span>
+        </div>
+        <div class="counter-item">
+            <span>Since You Arrived:</span>
+            <span class="counter-number" id="sinceArrival">0 lbs</span>
+        </div>
+        <div class="counter-item">
+            <span>Today So Far:</span>
+            <span class="counter-number" id="today">0 tons</span>
+        </div>
+    </div>
+    
+    <div class="story-container">
+        <div class="chapter" id="chapter1">
+            <h1>The Hidden Crisis</h1>
+            <p>Right now, as you read these words, something invisible is happening all around us. Something so massive, so wasteful, that if you could see it, it would take your breath away.</p>
+            <p>Every second that passes, <strong>3,000 pounds of food</strong> disappears into landfills, garbage disposals, and dumpsters across America alone.</p>
+            <div class="interactive-prompt" onclick="startVisualization()">
+                👆 Click to make the invisible visible
+            </div>
+        </div>
+        
+        <div class="chapter" id="chapter2">
+            <h2>The Scale of Waste</h2>
+            <p>In the time it takes you to read this sentence, enough food to feed a family of four for a day has been thrown away.</p>
+            <div class="stat-highlight">40% of all food produced never gets eaten</div>
+            <p>That's 80 billion pounds of food every year in the US. Imagine 1,000 Empire State Buildings made entirely of wasted food. That's what we throw away annually.</p>
+            <div class="interactive-prompt" onclick="intensifyVisualization()">
+                🌊 Watch the wave of waste intensify
+            </div>
+        </div>
+        
+        <div class="chapter" id="chapter3">
+            <h2>The Human Cost</h2>
+            <p>While 40% of food gets wasted, 1 in 8 Americans faces hunger. The food we throw away could feed every hungry person in America <strong>three times over</strong>.</p>
+            <div class="stat-highlight">54 million people could be fed with our food waste</div>
+            <p>Each particle you see represents not just wasted food, but a missed opportunity to nourish someone in need.</p>
+            <div class="interactive-prompt" onclick="showHungerContrast()">
+                💔 Visualize the contrast
+            </div>
+        </div>
+        
+        <div class="chapter" id="chapter4">
+            <h2>The Environmental Impact</h2>
+            <p>Food waste isn't just about hunger—it's an environmental catastrophe. When food rots in landfills, it produces methane, a greenhouse gas 25 times more potent than CO2.</p>
+            <div class="stat-highlight">Food waste = 8% of global greenhouse gas emissions</div>
+            <p>If food waste were a country, it would be the third-largest emitter of greenhouse gases after China and the United States.</p>
+            <div class="interactive-prompt" onclick="showEnvironmentalImpact()">
+                🌍 See the environmental cost
+            </div>
+        </div>
+        
+        <div class="chapter" id="chapter5">
+            <h2>Where It Happens</h2>
+            <p>Food waste occurs at every stage: 20% at farms, 12% in processing, 22% in restaurants, and 43% in our homes. Yes, nearly half happens in our own kitchens.</p>
+            <div class="stat-highlight">The average family throws away $1,500 of food per year</div>
+            <p>That's a vacation, a semester of college tuition, or months of groceries—literally thrown in the trash.</p>
+            <div class="interactive-prompt" onclick="showWasteLocations()">
+                🏠 Trace where waste happens
+            </div>
+        </div>
+        
+        <div class="chapter" id="chapter6">
+            <h2>The Solution</h2>
+            <p>But here's the incredible thing: this is a problem we can solve. Small changes create massive impact.</p>
+            <div class="stat-highlight">Reducing food waste by just 15% could feed 25 million people</div>
+            <p>Plan meals, store food properly, embrace "ugly" produce, donate excess food. Every action matters because the scale of waste means every action is amplified.</p>
+            <div class="interactive-prompt" onclick="showSolution()">
+                ✨ See the power of change
+            </div>
+        </div>
+        
+        <div class="chapter" id="chapter7">
+            <h1>Your Impact Starts Now</h1>
+            <p>You've witnessed the invisible crisis. You've seen the scale, the cost, the opportunity. Now you know that every meal planned, every leftover saved, every mindful choice creates ripples of change.</p>
+            <div class="stat-highlight">In the time you've spent here, <span id="finalWasteCount">0</span> pounds of food were wasted</div>
+            <p>But now you're armed with awareness. You're part of the solution. The particles around you aren't just data—they're possibilities, opportunities, hope.</p>
+            <div class="interactive-prompt" onclick="restart()">
+                🔄 Experience the story again
+            </div>
+        </div>
+    </div>
+    
+    <div class="scroll-indicator" id="scrollIndicator">
+        Scroll down to continue the story ↓
+    </div>
+
+    <script>
+        // Error handling
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error(`Error: ${msg} at line ${lineNo}`);
+            return false;
+        };
+        
+        try {
+            let canvas, ctx;
+            let particles = [];
+            let mouse = { x: 0, y: 0 };
+            let animationId;
+            let startTime = Date.now();
+            let currentChapter = 0;
+            let visualizationMode = 'normal';
+            
+            // Food waste data (pounds per second)
+            const WASTE_PER_SECOND = 3000;
+            const WASTE_PER_DAY = WASTE_PER_SECOND * 86400;
+            
+            class FoodParticle {
+                constructor(x, y, type = 'normal') {
+                    this.x = x || Math.random() * canvas.width;
+                    this.y = y || Math.random() * canvas.height;
+                    this.vx = (Math.random() - 0.5) * 2;
+                    this.vy = (Math.random() - 0.5) * 2;
+                    this.life = 1;
+                    this.decay = 0.005;
+                    this.size = Math.random() * 4 + 2;
+                    this.type = type;
+                    
+                    // Different colors for different types of waste
+                    switch(type) {
+                        case 'produce':
+                            this.color = `hsl(${Math.random() * 60 + 80}, 70%, 60%)`; // Green-yellow
+                            break;
+                        case 'meat':
+                            this.color = `hsl(${Math.random() * 30}, 80%, 50%)`; // Red-orange
+                            break;
+                        case 'dairy':
+                            this.color = `hsl(${Math.random() * 40 + 40}, 60%, 80%)`; // Light yellow-white
+                            break;
+                        case 'waste':
+                            this.color = `hsl(0, 80%, 60%)`; // Red for waste
+                            break;
+                        case 'hunger':
+                            this.color = `hsl(240, 80%, 60%)`; // Blue for hunger
+                            break;
+                        case 'solution':
+                            this.color = `hsl(120, 80%, 60%)`; // Green for solutions
+                            break;
+                        default:
+                            this.color = `hsl(${Math.random() * 60 + 30}, 70%, 60%)`;
+                    }
+                    
+                    this.trail = [];
+                }
+                
+                update() {
+                    try {
+                        // Add to trail
+                        this.trail.push({ x: this.x, y: this.y, life: this.life });
+                        if (this.trail.length > 5) this.trail.shift();
+                        
+                        // Different behaviors based on visualization mode
+                        switch(visualizationMode) {
+                            case 'intense':
+                                // Particles fall like rain
+                                this.vy += 0.2;
+                                this.vx += (Math.random() - 0.5) * 0.1;
+                                break;
+                            case 'hunger':
+                                // Particles move toward center (hunger)
+                                const centerX = canvas.width / 2;
+                                const centerY = canvas.height / 2;
+                                const dx = centerX - this.x;
+                                const dy = centerY - this.y;
+                                this.vx += dx * 0.0001;
+                                this.vy += dy * 0.0001;
+                                break;
+                            case 'environmental':
+                                // Particles swirl upward (like greenhouse gases)
+                                this.vy -= 0.1;
+                                this.vx += Math.sin(this.y * 0.01) * 0.5;
+                                break;
+                            case 'locations':
+                                // Particles cluster in different areas
+                                this.vx += (Math.random() - 0.5) * 0.3;
+                                this.vy += (Math.random() - 0.5) * 0.3;
+                                break;
+                            case 'solution':
+                                // Particles organize into patterns
+                                this.vx *= 0.95;
+                                this.vy *= 0.95;
+                                break;
+                        }
+                        
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        
+                        // Boundary handling
+                        if (this.x < 0 || this.x > canvas.width) this.vx *= -0.8;
+                        if (this.y < 0 || this.y > canvas.height) this.vy *= -0.8;
+                        
+                        this.x = Math.max(0, Math.min(canvas.width, this.x));
+                        this.y = Math.max(0, Math.min(canvas.height, this.y));
+                        
+                        this.life -= this.decay;
+                        
+                    } catch (error) {
+                        console.error('Particle update error:', error);
+                    }
+                }
+                
+                draw() {
+                    try {
+                        if (!ctx || this.life <= 0) return;
+                        
+                        // Draw trail
+                        this.trail.forEach((point, index) => {
+                            const alpha = (point.life || 0) * (index / this.trail.length) * 0.3;
+                            ctx.fillStyle = this.color.replace(')', `, ${alpha})`);
+                            ctx.beginPath();
+                            ctx.arc(point.x, point.y, this.size * 0.3, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                        
+                        // Main particle with glow
+                        const gradient = ctx.createRadialGradient(
+                            this.x, this.y, 0,
+                            this.x, this.y, this.size * 3
+                        );
+                        gradient.addColorStop(0, this.color.replace(')', `, ${this.life})`));
+                        gradient.addColorStop(1, this.color.replace(')', ', 0)'));
+                        
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Core
+                        ctx.fillStyle = this.color.replace(')', `, ${this.life})`);
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                    } catch (error) {
+                        console.error('Particle draw error:', error);
+                    }
+                }
+            }
+            
+            function initCanvas() {
+                try {
+                    canvas = document.getElementById('canvas');
+                    ctx = canvas.getContext('2d');
+                    resizeCanvas();
+                    return true;
+                } catch (error) {
+                    console.error('Canvas init error:', error);
+                    return false;
+                }
+            }
+            
+            function resizeCanvas() {
+                if (canvas) {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+            }
+            
+            function updateCounters() {
+                try {
+                    const now = Date.now();
+                    const elapsed = (now - startTime) / 1000;
+                    const wastedSinceArrival = Math.floor(elapsed * WASTE_PER_SECOND);
+                    
+                    const perSecondEl = document.getElementById('perSecond');
+                    const sinceArrivalEl = document.getElementById('sinceArrival');
+                    const todayEl = document.getElementById('today');
+                    
+                    if (perSecondEl) perSecondEl.textContent = WASTE_PER_SECOND.toLocaleString() + ' lbs';
+                    if (sinceArrivalEl) sinceArrivalEl.textContent = wastedSinceArrival.toLocaleString() + ' lbs';
+                    if (todayEl) todayEl.textContent = Math.floor(WASTE_PER_DAY / 2000).toLocaleString() + ' tons';
+                    
+                    // Update final count
+                    const finalCountEl = document.getElementById('finalWasteCount');
+                    if (finalCountEl) finalCountEl.textContent = wastedSinceArrival.toLocaleString();
+                    
+                } catch (error) {
+                    console.error('Counter update error:', error);
+                }
+            }
+            
+            function createParticles(count = 50, type = 'normal') {
+                try {
+                    for (let i = 0; i < count; i++) {
+                        particles.push(new FoodParticle(
+                            Math.random() * canvas.width,
+                            Math.random() * canvas.height,
+                            type
+                        ));
+                    }
+                } catch (error) {
+                    console.error('Particle creation error:', error);
+                }
+            }
+            
+            function animate() {
+                try {
+                    if (!ctx || !canvas) return;
+                    
+                    // Clear with fade
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Update particles
+                    particles = particles.filter(particle => {
+                        particle.update();
+                        particle.draw();
+                        return particle.life > 0;
+                    });
+                    
+                    // Maintain particle count based on current chapter
+                    const targetCount = Math.min(100 + currentChapter * 20, 300);
+                    while (particles.length < targetCount) {
+                        particles.push(new FoodParticle());
+                    }
+                    
+                    updateCounters();
+                    animationId = requestAnimationFrame(animate);
+                    
+                } catch (error) {
+                    console.error('Animation error:', error);
+                    animationId = requestAnimationFrame(animate);
+                }
+            }
+            
+            function handleScroll() {
+                try {
+                    const chapters = document.querySelectorAll('.chapter');
+                    const scrollPos = window.scrollY;
+                    const windowHeight = window.innerHeight;
+                    
+                    chapters.forEach((chapter, index) => {
+                        const rect = chapter.getBoundingClientRect();
+                        const isVisible = rect.top < windowHeight * 0.8 && rect.bottom > windowHeight * 0.2;
+                        
+                        if (isVisible && !chapter.classList.contains('visible')) {
+                            chapter.classList.add('visible');
+                            currentChapter = index;
+                            
+                            // Add particles when chapter becomes visible
+                            createParticles(30, 'normal');
+                        }
+                    });
+                    
+                    // Hide scroll indicator after first scroll
+                    const scrollIndicator = document.getElementById('scrollIndicator');
+                    if (scrollPos > 100 && scrollIndicator) {
+                        scrollIndicator.style.opacity = '0';
+                    }
+                    
+                } catch (error) {
+                    console.error('Scroll handling error:', error);
+                }
+            }
+            
+            // Interactive functions
+            window.startVisualization = function() {
+                visualizationMode = 'normal';
+                createParticles(100, 'waste');
+            };
+            
+            window.intensifyVisualization = function() {
+                visualizationMode = 'intense';
+                createParticles(150, 'waste');
+            };
+            
+            window.showHungerContrast = function() {
+                visualizationMode = 'hunger';
+                createParticles(75, 'hunger');
+                createParticles(75, 'waste');
+            };
+            
+            window.showEnvironmentalImpact = function() {
+                visualizationMode = 'environmental';
+                createParticles(100, 'waste');
+            };
+            
+            window.showWasteLocations = function() {
+                visualizationMode = 'locations';
+                createParticles(40, 'produce');
+                createParticles(30, 'meat');
+                createParticles(50, 'dairy');
+            };
+            
+            window.showSolution = function() {
+                visualizationMode = 'solution';
+                particles = []; // Clear waste particles
+                createParticles(100, 'solution');
+            };
+            
+            window.restart = function() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                particles = [];
+                currentChapter = 0;
+                visualizationMode = 'normal';
+                startTime = Date.now();
+            };
+            
+            // Initialize everything
+            function init() {
+                try {
+                    if (!initCanvas()) return;
+                    
+                    window.addEventListener('resize', resizeCanvas);
+                    window.addEventListener('scroll', handleScroll);
+                    
+                    // Start with some initial particles
+                    createParticles(50);
+                    animate();
+                    
+                    // Make first chapter visible
+                    setTimeout(() => {
+                        const firstChapter = document.getElementById('chapter1');
+                        if (firstChapter) firstChapter.classList.add('visible');
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                }
+            }
+            
+            // Start when ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+            
+        } catch (error) {
+            console.error('Global error:', error);
+        }
+    </script>
+</body>
+</html>

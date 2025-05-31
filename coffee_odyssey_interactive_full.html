@@ -1,0 +1,216 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Coffee Odyssey</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    /* Reset and base styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      color: white;
+      background-color: #111;
+      overflow-x: hidden;
+    }
+
+    section {
+      padding: 60px 20px;
+      text-align: center;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: opacity 1s ease, transform 1s ease;
+      opacity: 0;
+      transform: translateY(40px);
+    }
+
+    section.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    h1, h2 {
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #000;
+    }
+
+    .hero {
+      background: linear-gradient(to bottom, #0a0a0a, #331a00);
+    }
+
+    .map svg {
+      max-width: 90%;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    .counter {
+      font-size: 2em;
+      color: #ffc266;
+      margin-top: 20px;
+    }
+
+    .event {
+      background: rgba(255,255,255,0.05);
+      margin: 10px auto;
+      padding: 20px;
+      border-left: 4px solid #c47f00;
+      width: 90%;
+      max-width: 700px;
+    }
+
+    .popup {
+      display: none;
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.9);
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 1000;
+      max-width: 90%;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+
+    .popup.show {
+      display: block;
+    }
+
+    .popup h3 {
+      margin-bottom: 10px;
+    }
+
+    .popup button {
+      margin-top: 10px;
+      padding: 5px 10px;
+    }
+
+    .btn {
+      background: #c47f00;
+      color: white;
+      padding: 10px 20px;
+      margin-top: 20px;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .illustrated {
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8em; }
+      h2 { font-size: 1.4em; }
+      .counter { font-size: 1.5em; }
+    }
+  </style>
+</head>
+<body>
+
+<audio id="bg-music" autoplay loop>
+  <source src="https://cdn.pixabay.com/download/audio/2023/04/25/audio_2d6d74058c.mp3?filename=ambient-cinematic-144741.mp3" type="audio/mpeg">
+</audio>
+
+<section class="hero illustrated" style="background-image: url('https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd');">
+  <h1>Coffee: The World's Favorite Drug</h1>
+  <p>Billions drink it. Few know its epic story.</p>
+</section>
+
+<section class="illustrated" style="background-image: url('https://images.unsplash.com/photo-1509042239860-f550ce710b93');">
+  <h2>🌍 Coffee's Journey Across the World</h2>
+  <svg viewBox="0 0 800 400">
+    <path d="M100,200 C200,100 600,100 700,200" stroke="#c47f00" stroke-width="4" fill="none" stroke-dasharray="10,5"/>
+    <circle cx="100" cy="200" r="6" fill="#fff" />
+    <circle cx="700" cy="200" r="6" fill="#fff" />
+  </svg>
+</section>
+
+<section>
+  <h2>☕ Coffee in History</h2>
+  <div class="event"><strong>French Revolution:</strong> Coffeehouses were centers for radical thought and political discourse.</div>
+  <div class="event"><strong>Sweden's Coffee Ban:</strong> King Gustav III tried to prove coffee was deadly with a bizarre medical experiment.</div>
+  <div class="event"><strong>Pope Clement VIII:</strong> Declared coffee acceptable for Christians, preventing a ban.</div>
+</section>
+
+<section>
+  <h2>⏱️ Real-Time Coffee Counter</h2>
+  <p>Estimated cups of coffee consumed globally since you opened this page:</p>
+  <div class="counter" id="coffee-counter">0</div>
+</section>
+
+<section>
+  <h2>🎓 Famous Coffee Drinkers</h2>
+  <div class="event"><strong>Beethoven:</strong> Counted exactly 60 beans for every cup he drank.</div>
+  <div class="event"><strong>Voltaire:</strong> Allegedly drank 40-60 cups per day.</div>
+  <div class="event"><strong>David Lynch:</strong> Known for his love of dark-roast and launched his own coffee brand.</div>
+</section>
+
+<section>
+  <h2>💻 Coffee & Creativity</h2>
+  <p>Coffee has fueled revolutions, novels, inventions, and the internet age.</p>
+  <button class="btn" onclick="showPopup()">Discover More</button>
+</section>
+
+<div id="popup-panel" class="popup">
+  <h3>☕ Coffee's Influence</h3>
+  <p>Programmers, writers, and scientists often turn to coffee for creative bursts. The invention of the webcam? Created to monitor a coffee pot at Cambridge University!</p>
+  <button onclick="hidePopup()">Close</button>
+</div>
+
+<script>
+  const sections = document.querySelectorAll('section');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('active');
+      }
+    });
+  }, { threshold: 0.2 });
+
+  sections.forEach(sec => observer.observe(sec));
+
+  // Counter logic
+  const counter = document.getElementById('coffee-counter');
+  const rate = 2.25e9 / (24 * 60 * 60); // ~26,041 per second
+  const start = Date.now();
+
+  function updateCounter() {
+    const elapsed = (Date.now() - start) / 1000;
+    const cups = Math.floor(elapsed * rate);
+    counter.textContent = cups.toLocaleString();
+    requestAnimationFrame(updateCounter);
+  }
+
+  updateCounter();
+
+  // Popup logic
+  function showPopup() {
+    document.getElementById('popup-panel').classList.add('show');
+  }
+
+  function hidePopup() {
+    document.getElementById('popup-panel').classList.remove('show');
+  }
+
+  // Fallback play for iOS
+  document.body.addEventListener('click', () => {
+    const audio = document.getElementById('bg-music');
+    if (audio.paused) audio.play();
+  });
+</script>
+
+</body>
+</html>

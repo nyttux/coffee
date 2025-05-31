@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Coffee Odyssey</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #1e1e1e;
+      color: #fff;
+    }
+
+    section {
+      padding: 60px 20px;
+      text-align: center;
+    }
+
+    h1, h2 {
+      margin-bottom: 20px;
+    }
+
+    .counter {
+      font-size: 2em;
+      color: #ffcc66;
+    }
+
+    .popup {
+      display: none;
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.95);
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 1000;
+      width: 80%;
+      max-width: 400px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+
+    .popup.show {
+      display: block;
+    }
+
+    .btn {
+      background: #c47f00;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 1rem;
+      margin-top: 20px;
+    }
+
+    #sound-hint {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      padding: 10px 20px;
+      color: #fff;
+      font-size: 0.9em;
+      border-radius: 6px;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8em; }
+      .counter { font-size: 1.5em; }
+    }
+  </style>
+</head>
+<body>
+
+<audio id="bg-music" loop>
+  <source src="https://cdn.pixabay.com/download/audio/2023/04/25/audio_2d6d74058c.mp3?filename=ambient-cinematic-144741.mp3" type="audio/mpeg">
+</audio>
+
+<div id="sound-hint">🔊 Tap anywhere to enable sound</div>
+
+<section>
+  <h1>Coffee: The World's Favorite Drug</h1>
+  <p>Billions drink it. Few know its full story.</p>
+</section>
+
+<section>
+  <h2>☕ Real-Time Coffee Consumption</h2>
+  <p>Estimated cups of coffee consumed since you arrived:</p>
+  <div class="counter" id="coffee-counter">0</div>
+</section>
+
+<section>
+  <h2>💡 Coffee and Creativity</h2>
+  <p>Coffee has fueled revolutions, novels, inventions, and the internet age.</p>
+  <button class="btn" onclick="showPopup()">Learn More</button>
+</section>
+
+<div id="popup-panel" class="popup">
+  <h3>☕ Coffee Facts</h3>
+  <p>The first webcam? Invented to monitor a coffee pot at Cambridge University.</p>
+  <button onclick="hidePopup()">Close</button>
+</div>
+
+<script>
+  // Activate section transitions
+  document.addEventListener("DOMContentLoaded", () => {
+    const sections = document.querySelectorAll("section");
+    sections.forEach((sec, i) => {
+      setTimeout(() => sec.style.opacity = 1, i * 500);
+    });
+  });
+
+  // Coffee counter
+  const counter = document.getElementById("coffee-counter");
+  const rate = 2.25e9 / (24 * 60 * 60); // ~26,041 cups per second
+  const start = Date.now();
+
+  function updateCounter() {
+    const elapsed = (Date.now() - start) / 1000;
+    const cups = Math.floor(elapsed * rate);
+    counter.textContent = cups.toLocaleString();
+    requestAnimationFrame(updateCounter);
+  }
+
+  updateCounter();
+
+  // Popup logic
+  function showPopup() {
+    document.getElementById("popup-panel").classList.add("show");
+  }
+
+  function hidePopup() {
+    document.getElementById("popup-panel").classList.remove("show");
+  }
+
+  // Mobile sound autoplay workaround
+  const audio = document.getElementById("bg-music");
+  const soundHint = document.getElementById("sound-hint");
+  function tryPlayAudio() {
+    if (audio.paused) {
+      audio.play().then(() => {
+        soundHint.style.display = "none";
+      }).catch(() => {
+        // User gesture not yet happened
+      });
+    }
+  }
+
+  document.body.addEventListener("click", tryPlayAudio, { once: true });
+</script>
+
+</body>
+</html>
