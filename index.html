@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Coffee Odyssey</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+      background-color: #111;
+      color: white;
+      scroll-behavior: smooth;
+    }
+
+    section {
+      height: 100vh;
+      width: 100%;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: all 1s ease-out;
+    }
+
+    section.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .hero {
+      background: linear-gradient(to bottom, #0a0a0a, #331a00);
+    }
+
+    h1, h2 {
+      text-shadow: 0 0 10px #000;
+    }
+
+    .timeline {
+      background: #1a0e00;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding-top: 100px;
+    }
+
+    .event {
+      background: rgba(255, 255, 255, 0.05);
+      margin: 20px auto;
+      padding: 20px;
+      border-left: 5px solid #c47f00;
+      width: 80%;
+      text-align: left;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+      transition: transform 0.3s;
+    }
+
+    .event:hover {
+      transform: scale(1.02);
+    }
+
+    .map {
+      background: #0d0d0d;
+      flex-direction: column;
+    }
+
+    .map svg {
+      max-width: 80%;
+      height: auto;
+    }
+
+    .counter-section {
+      background: #2d1a00;
+      flex-direction: column;
+    }
+
+    .counter {
+      font-size: 2em;
+      color: #ffc266;
+      margin-top: 20px;
+    }
+
+    .interactive {
+      background: linear-gradient(to top, #3b2a1a, #000);
+    }
+
+    .interactive button {
+      padding: 10px 20px;
+      background: #c47f00;
+      border: none;
+      color: white;
+      font-size: 1.1em;
+      cursor: pointer;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #c47f00;
+    }
+
+    .fact-popup {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 1.1em;
+      opacity: 0;
+      transition: opacity 1s;
+    }
+
+    .fact-popup.show {
+      opacity: 1;
+    }
+
+    audio {
+      display: none;
+    }
+
+    /* Placeholder background art */
+    .illustrated {
+      background: url('https://images.unsplash.com/photo-1541959287699-f3b1c0d48cc0?auto=format&fit=crop&w=1350&q=80') center/cover no-repeat;
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- Background Sound -->
+<audio id="bg-sound" loop autoplay>
+  <source src="https://cdn.pixabay.com/download/audio/2023/04/25/audio_2d6d74058c.mp3?filename=ambient-cinematic-144741.mp3" type="audio/mpeg">
+</audio>
+
+<section class="hero">
+  <div>
+    <h1>Coffee: The World's Favorite Drug</h1>
+    <p>Billions drink it. Few know its epic story.</p>
+  </div>
+</section>
+
+<section class="timeline">
+  <div class="event">
+    <h2>📍 Ethiopia, ~800 AD</h2>
+    <p>Kaldi the goat herder notices his goats dancing after eating mysterious red berries.</p>
+  </div>
+  <div class="event">
+    <h2>🕌 Yemen, 1400s</h2>
+    <p>Sufi monks begin brewing the berries into a drink to stay awake during prayers.</p>
+  </div>
+  <div class="event">
+    <h2>🏛️ Europe, 1600s</h2>
+    <p>Coffee sparks controversy and fascination. Cafés appear, spreading like wildfire.</p>
+  </div>
+</section>
+
+<section class="map">
+  <div>
+    <h2>🌍 The Spread of Coffee</h2>
+    <svg viewBox="0 0 800 400">
+      <path d="M100,200 C150,180 200,180 250,200 S350,220 400,200 S500,180 550,200 S650,220 700,200"
+        stroke="#c47f00" stroke-width="3" fill="none" stroke-dasharray="5,5"/>
+      <circle cx="100" cy="200" r="6" fill="#ffe6cc"/>
+      <circle cx="250" cy="200" r="6" fill="#ffe6cc"/>
+      <circle cx="400" cy="200" r="6" fill="#ffe6cc"/>
+      <circle cx="550" cy="200" r="6" fill="#ffe6cc"/>
+      <circle cx="700" cy="200" r="6" fill="#ffe6cc"/>
+    </svg>
+    <p style="margin-top: 20px;">From Ethiopia to the world — traced across time.</p>
+  </div>
+</section>
+
+<section class="counter-section">
+  <div>
+    <h2>☕ Real-Time Coffee Consumption</h2>
+    <p>Estimated cups of coffee consumed globally since you arrived:</p>
+    <div class="counter" id="coffee-counter">0</div>
+  </div>
+</section>
+
+<section class="illustrated">
+  <div>
+    <h2 style="color:#fff;">🖼️ Illustrated History Moments</h2>
+    <p style="color:#ddd;">(Future interactive story cards will appear here!)</p>
+  </div>
+</section>
+
+<section class="interactive">
+  <div>
+    <h2>🎲 Coffee Trivia Time!</h2>
+    <button onclick="showFact()">Reveal a Surprising Coffee Fact</button>
+    <div id="factBox" class="fact-popup"></div>
+  </div>
+</section>
+
+<script>
+  // Scroll animation
+  const sections = document.querySelectorAll('section');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('active');
+    });
+  }, { threshold: 0.1 });
+
+  sections.forEach(section => observer.observe(section));
+
+  // Coffee counter logic
+  const counter = document.getElementById('coffee-counter');
+  const cupsPerSecond = 2.25e9 / (24 * 60 * 60); // Cups per second globally
+  let startTime = Date.now();
+
+  function updateCounter() {
+    const elapsed = (Date.now() - startTime) / 1000;
+    const cups = Math.floor(cupsPerSecond * elapsed);
+    counter.textContent = cups.toLocaleString();
+    requestAnimationFrame(updateCounter);
+  }
+
+  updateCounter();
+
+  // Trivia facts
+  const facts = [
+    "Coffee was once banned in Mecca in the 1500s.",
+    "Beethoven counted 60 beans per cup of coffee.",
+    "Espresso has less caffeine than drip coffee per ounce.",
+    "The word 'coffee' comes from the Arabic 'qahwa'.",
+    "Instant coffee was invented in 1901.",
+    "Coffee beans are technically seeds, not beans."
+  ];
+
+  function showFact() {
+    const box = document.getElementById('factBox');
+    const randomFact = facts[Math.floor(Math.random() * facts.length)];
+    box.textContent = randomFact;
+    box.classList.add('show');
+    setTimeout(() => box.classList.remove('show'), 6000);
+  }
+
+  // Audio autoplay fallback
+  document.body.addEventListener('click', () => {
+    const audio = document.getElementById('bg-sound');
+    if (audio.paused) audio.play();
+  });
+</script>
+
+</body>
+</html>
